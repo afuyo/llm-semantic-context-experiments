@@ -1,0 +1,537 @@
+@prefix edu: <https://w3id.org/edutrainer#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix skosxl: <http://www.w3.org/2008/05/skos-xl#> .
+@prefix wd: <http://www.wikidata.org/entity/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+edu:PlatformObservabilityOntology
+    a rdfs:Resource ;
+    rdfs:label "Platform Observability ontology"@en ;
+    rdfs:comment "Vocabulary for assessing period-scoped data-asset usage from observed operations, view dependencies, and declared application-to-topic mappings."@en ;
+    rdfs:seeAlso <https://www.w3.org/TR/2026/WD-shacl12-core-20260828/> ,
+        <https://www.w3.org/TR/shacl12-inference-rules/> .
+
+#################################################################
+# Competency questions
+#################################################################
+
+edu:PlatformObservabilityCompetencyQuestions
+    a skos:ConceptScheme ;
+    skos:prefLabel "Platform Observability competency questions"@en .
+
+edu:CQ1
+    a skos:Concept ;
+    skos:inScheme edu:PlatformObservabilityCompetencyQuestions ;
+    skos:notation "CQ1" ;
+    skos:prefLabel "Which Assets were Unobserved during a specified Observation Period?"@en .
+
+edu:CQ2
+    a skos:Concept ;
+    skos:inScheme edu:PlatformObservabilityCompetencyQuestions ;
+    skos:notation "CQ2" ;
+    skos:prefLabel "For a given Asset, was its usage direct, view-derived, or both?"@en .
+
+edu:CQ3
+    a skos:Concept ;
+    skos:inScheme edu:PlatformObservabilityCompetencyQuestions ;
+    skos:notation "CQ3" ;
+    skos:prefLabel "When a Contributing Table has view-derived evidence, which Queried View and dependency path produced that evidence?"@en .
+
+edu:CQ4
+    a skos:Concept ;
+    skos:inScheme edu:PlatformObservabilityCompetencyQuestions ;
+    skos:notation "CQ4" ;
+    skos:prefLabel "Which Actors accessed each Queried Asset, when did they access it, and through which Evidence Producer?"@en .
+
+edu:CQ5
+    a skos:Concept ;
+    skos:inScheme edu:PlatformObservabilityCompetencyQuestions ;
+    skos:notation "CQ5" ;
+    skos:prefLabel "Which Observed Operations qualify as Access Events, and which were excluded as maintenance or metadata operations?"@en .
+
+edu:CQ6
+    a skos:Concept ;
+    skos:inScheme edu:PlatformObservabilityCompetencyQuestions ;
+    skos:notation "CQ6" ;
+    skos:prefLabel "For a given Java application, which output topics does it populate, for which source system and target schema?"@en .
+
+edu:addressesCompetencyQuestion
+    a rdf:Property ;
+    rdfs:label "addresses competency question"@en ;
+    rdfs:comment "Links a semantic artifact to a competency question that it supports."@en ;
+    rdfs:range skos:Concept .
+
+#################################################################
+# Core classes
+#################################################################
+
+edu:Asset
+    a rdfs:Class ;
+    rdfs:label "Asset"@en ;
+    rdfs:comment "A queryable relation whose usage is assessed."@en .
+
+edu:Table
+    a rdfs:Class ;
+    rdfs:subClassOf edu:Asset ;
+    rdfs:label "Table"@en ;
+    rdfs:comment "A persisted queryable relation."@en ;
+    rdfs:seeAlso wd:Q1162238 .
+
+edu:View
+    a rdfs:Class ;
+    rdfs:subClassOf edu:Asset ;
+    rdfs:label "View"@en ;
+    rdfs:comment "A queryable relation defined from other Assets."@en .
+
+edu:BusinessConcept
+    a rdfs:Class ;
+    rdfs:label "Business Concept"@en ;
+    rdfs:comment "A domain meaning represented by exactly one Business Concept View within the assessed Asset population."@en .
+
+edu:BusinessConceptView
+    a rdfs:Class ;
+    rdfs:subClassOf edu:View ;
+    rdfs:label "Business Concept View"@en ;
+    rdfs:comment "A View that represents a Business Concept and exposes its Contributing Tables."@en .
+
+edu:RelationshipView
+    a rdfs:Class ;
+    rdfs:subClassOf edu:View ;
+    rdfs:label "Relationship View"@en ;
+    rdfs:comment "A View that represents an association between Business Concepts."@en .
+
+edu:ContributingTable
+    a rdfs:Class ;
+    rdfs:subClassOf edu:Table ;
+    rdfs:label "Contributing Table"@en ;
+    rdfs:comment "A Table that supplies data to exactly one Business Concept View or Relationship View."@en .
+
+edu:AssetDependency
+    a rdfs:Class ;
+    rdfs:label "Asset Dependency"@en ;
+    rdfs:comment "A reifier describing a View-to-Asset dependency and its lineage annotations; it is not Usage Evidence."@en .
+
+edu:ObservedOperation
+    a rdfs:Class ;
+    rdfs:label "Observed Operation"@en ;
+    rdfs:comment "A successful operation reported by an Evidence Producer before usage eligibility is determined."@en .
+
+edu:AccessEvent
+    a rdfs:Class ;
+    rdfs:subClassOf edu:ObservedOperation ;
+    rdfs:label "Access Event"@en ;
+    rdfs:comment "An eligible Observed Operation that explicitly references at least one Queried Asset."@en .
+
+edu:Actor
+    a rdfs:Class ;
+    rdfs:label "Actor"@en ;
+    rdfs:comment "A person, service account, or application that initiates access to an Asset."@en .
+
+edu:EvidenceProducer
+    a rdfs:Class ;
+    rdfs:label "Evidence Producer"@en ;
+    rdfs:comment "A system that reports an Observed Operation."@en .
+
+edu:UsageEvidence
+    a rdfs:Class ;
+    rdfs:label "Usage Evidence"@en ;
+    rdfs:comment "Evidence supporting that an Asset was accessed during an Observation Period."@en .
+
+edu:DirectUsageEvidence
+    a rdfs:Class ;
+    rdfs:subClassOf edu:UsageEvidence ;
+    rdfs:label "Direct Usage Evidence"@en ;
+    rdfs:comment "Usage Evidence for an Asset explicitly referenced by an Access Event."@en .
+
+edu:ViewDerivedUsageEvidence
+    a rdfs:Class ;
+    rdfs:subClassOf edu:UsageEvidence ;
+    rdfs:label "View-derived Usage Evidence"@en ;
+    rdfs:comment "Usage Evidence attributed to an Asset through a queried View dependency."@en .
+
+edu:ObservationPeriod
+    a rdfs:Class ;
+    rdfs:label "Observation Period"@en ;
+    rdfs:comment "The bounded interval during which Access Events are considered."@en .
+
+edu:UsageAssessment
+    a rdfs:Class ;
+    rdfs:label "Usage Assessment"@en ;
+    rdfs:comment "The evaluation of one Asset's Usage Evidence Profile for one Observation Period."@en .
+
+edu:ReviewCandidate
+    a rdfs:Class ;
+    rdfs:label "Review Candidate"@en ;
+    rdfs:comment "An Unobserved Asset selected for human investigation, without implying that it is obsolete."@en .
+
+edu:DeclaredConsumption
+    a rdfs:Class ;
+    rdfs:label "Declared Consumption"@en ;
+    rdfs:comment "A registered expectation that a consumer uses an Asset; it is not Usage Evidence."@en .
+
+#################################################################
+# Application publication classes
+#################################################################
+
+edu:SoftwareApplication
+    a rdfs:Class ;
+    rdfs:label "Software Application"@en ;
+    rdfs:comment "Software that may produce data or act as an Actor."@en ;
+    rdfs:seeAlso wd:Q166142 .
+
+edu:JavaApplication
+    a rdfs:Class ;
+    rdfs:subClassOf edu:SoftwareApplication ;
+    rdfs:label "Java Application"@en ;
+    rdfs:comment "A Software Application implemented in Java that publishes to one or more output topics."@en ;
+    rdfs:seeAlso wd:Q251 .
+
+edu:OutputTopic
+    a rdfs:Class ;
+    rdfs:label "Output Topic"@en ;
+    rdfs:comment "A Kafka topic populated by a producing application. Any source- or shard-like suffix remains part of its identifier until its semantics are defined."@en .
+
+edu:SourceSystem
+    a rdfs:Class ;
+    rdfs:label "Source System"@en ;
+    rdfs:comment "The originating system named by an application-to-topic mapping."@en .
+
+edu:TargetSchema
+    a rdfs:Class ;
+    rdfs:label "Target Schema"@en ;
+    rdfs:comment "The target business-concept or relationship schema named by an application-to-topic mapping."@en .
+
+edu:ApplicationTopicPublication
+    a rdfs:Class ;
+    rdfs:label "Application Topic Publication"@en ;
+    rdfs:comment "A reifier that annotates a Java Application-to-Output Topic relationship with its Source System and Target Schema."@en .
+
+#################################################################
+# Controlled concepts
+#################################################################
+
+edu:UsageEvidenceProfileScheme
+    a skos:ConceptScheme ;
+    skos:prefLabel "Usage Evidence Profile scheme"@en .
+
+edu:UnobservedProfile
+    a skos:Concept ;
+    skos:inScheme edu:UsageEvidenceProfileScheme ;
+    skos:notation "UNOBSERVED" ;
+    skos:prefLabel "Unobserved"@en ;
+    skosxl:prefLabel edu:UnobservedProfileLabel .
+
+edu:UnobservedProfileLabel
+    a skosxl:Label ;
+    skosxl:literalForm "Unobserved"@en .
+
+edu:DirectOnlyProfile
+    a skos:Concept ;
+    skos:inScheme edu:UsageEvidenceProfileScheme ;
+    skos:notation "DIRECT_ONLY" ;
+    skos:prefLabel "Direct only"@en ;
+    skosxl:prefLabel edu:DirectOnlyProfileLabel .
+
+edu:DirectOnlyProfileLabel
+    a skosxl:Label ;
+    skosxl:literalForm "Direct only"@en .
+
+edu:ViewDerivedOnlyProfile
+    a skos:Concept ;
+    skos:inScheme edu:UsageEvidenceProfileScheme ;
+    skos:notation "VIEW_DERIVED_ONLY" ;
+    skos:prefLabel "View-derived only"@en ;
+    skosxl:prefLabel edu:ViewDerivedOnlyProfileLabel .
+
+edu:ViewDerivedOnlyProfileLabel
+    a skosxl:Label ;
+    skosxl:literalForm "View-derived only"@en .
+
+edu:DirectAndViewDerivedProfile
+    a skos:Concept ;
+    skos:inScheme edu:UsageEvidenceProfileScheme ;
+    skos:notation "DIRECT_AND_VIEW_DERIVED" ;
+    skos:prefLabel "Direct and view-derived"@en ;
+    skosxl:prefLabel edu:DirectAndViewDerivedProfileLabel .
+
+edu:DirectAndViewDerivedProfileLabel
+    a skosxl:Label ;
+    skosxl:literalForm "Direct and view-derived"@en .
+
+edu:OperationClassificationScheme
+    a skos:ConceptScheme ;
+    skos:prefLabel "Observed Operation classification scheme"@en .
+
+edu:DataAccessOperation
+    a skos:Concept ;
+    skos:inScheme edu:OperationClassificationScheme ;
+    skos:prefLabel "Data access"@en .
+
+edu:MaintenanceOperation
+    a skos:Concept ;
+    skos:inScheme edu:OperationClassificationScheme ;
+    skos:prefLabel "Maintenance"@en .
+
+edu:MetadataInspectionOperation
+    a skos:Concept ;
+    skos:inScheme edu:OperationClassificationScheme ;
+    skos:prefLabel "Metadata inspection"@en .
+
+edu:SessionControlOperation
+    a skos:Concept ;
+    skos:inScheme edu:OperationClassificationScheme ;
+    skos:prefLabel "Session control"@en .
+
+edu:DataDefinitionOperation
+    a skos:Concept ;
+    skos:inScheme edu:OperationClassificationScheme ;
+    skos:prefLabel "Data definition"@en .
+
+edu:ActorKindScheme
+    a skos:ConceptScheme ;
+    skos:prefLabel "Actor kind scheme"@en ;
+    rdfs:comment "Common actor kinds use Wikidata taxonomy links where a stable match is available."@en .
+
+edu:HumanActorKind
+    a skos:Concept ;
+    skos:inScheme edu:ActorKindScheme ;
+    skos:prefLabel "Human"@en ;
+    skos:exactMatch wd:Q5 .
+
+edu:ServiceAccountActorKind
+    a skos:Concept ;
+    skos:inScheme edu:ActorKindScheme ;
+    skos:prefLabel "Service account"@en .
+
+edu:SoftwareApplicationActorKind
+    a skos:Concept ;
+    skos:inScheme edu:ActorKindScheme ;
+    skos:prefLabel "Software application"@en ;
+    skos:exactMatch wd:Q166142 .
+
+#################################################################
+# Properties
+#################################################################
+
+edu:identifier
+    a rdf:Property ;
+    rdfs:label "identifier"@en ;
+    rdfs:range xsd:string .
+
+edu:assetCatalog
+    a rdf:Property ;
+    rdfs:label "asset catalog"@en ;
+    rdfs:domain edu:Asset ;
+    rdfs:range xsd:string .
+
+edu:assetSchema
+    a rdf:Property ;
+    rdfs:label "asset schema"@en ;
+    rdfs:domain edu:Asset ;
+    rdfs:range xsd:string .
+
+edu:assetName
+    a rdf:Property ;
+    rdfs:label "asset name"@en ;
+    rdfs:domain edu:Asset ;
+    rdfs:range xsd:string .
+
+edu:representsBusinessConcept
+    a rdf:Property ;
+    rdfs:label "represents business concept"@en ;
+    rdfs:domain edu:BusinessConceptView ;
+    rdfs:range edu:BusinessConcept .
+
+edu:contributesToView
+    a rdf:Property ;
+    rdfs:label "contributes to View"@en ;
+    rdfs:domain edu:ContributingTable ;
+    rdfs:range edu:View .
+
+edu:dependsOn
+    a rdf:Property ;
+    rdfs:label "depends on"@en ;
+    rdfs:domain edu:View ;
+    rdfs:range edu:Asset .
+
+edu:dependencyDepth
+    a rdf:Property ;
+    rdfs:label "dependency depth"@en ;
+    rdfs:domain edu:AssetDependency ;
+    rdfs:range xsd:integer .
+
+edu:viewDefinitionHash
+    a rdf:Property ;
+    rdfs:label "view definition hash"@en ;
+    rdfs:domain edu:AssetDependency ;
+    rdfs:range xsd:string .
+
+edu:operationIdentifier
+    a rdf:Property ;
+    rdfs:label "operation identifier"@en ;
+    rdfs:domain edu:ObservedOperation ;
+    rdfs:range xsd:string .
+
+edu:occurredAt
+    a rdf:Property ;
+    rdfs:label "occurred at"@en ;
+    rdfs:domain edu:ObservedOperation ;
+    rdfs:range xsd:dateTime .
+
+edu:initiatedBy
+    a rdf:Property ;
+    rdfs:label "initiated by"@en ;
+    rdfs:domain edu:ObservedOperation ;
+    rdfs:range edu:Actor .
+
+edu:reportedBy
+    a rdf:Property ;
+    rdfs:label "reported by"@en ;
+    rdfs:domain edu:ObservedOperation ;
+    rdfs:range edu:EvidenceProducer .
+
+edu:operationClassification
+    a rdf:Property ;
+    rdfs:label "operation classification"@en ;
+    rdfs:domain edu:ObservedOperation ;
+    rdfs:range skos:Concept .
+
+edu:eligibleForUsage
+    a rdf:Property ;
+    rdfs:label "eligible for usage"@en ;
+    rdfs:domain edu:ObservedOperation ;
+    rdfs:range xsd:boolean .
+
+edu:eligibilityRationale
+    a rdf:Property ;
+    rdfs:label "eligibility rationale"@en ;
+    rdfs:domain edu:ObservedOperation ;
+    rdfs:range xsd:string .
+
+edu:queriesAsset
+    a rdf:Property ;
+    rdfs:label "queries Asset"@en ;
+    rdfs:domain edu:AccessEvent ;
+    rdfs:range edu:Asset .
+
+edu:derivedFromAccessEvent
+    a rdf:Property ;
+    rdfs:label "derived from Access Event"@en ;
+    rdfs:domain edu:UsageEvidence ;
+    rdfs:range edu:AccessEvent .
+
+edu:queriedAsset
+    a rdf:Property ;
+    rdfs:label "Queried Asset"@en ;
+    rdfs:domain edu:UsageEvidence ;
+    rdfs:range edu:Asset .
+
+edu:attributedAsset
+    a rdf:Property ;
+    rdfs:label "Attributed Asset"@en ;
+    rdfs:domain edu:UsageEvidence ;
+    rdfs:range edu:Asset .
+
+edu:rootView
+    a rdf:Property ;
+    rdfs:label "root View"@en ;
+    rdfs:domain edu:ViewDerivedUsageEvidence ;
+    rdfs:range edu:View .
+
+edu:evidenceDependencyDepth
+    a rdf:Property ;
+    rdfs:label "evidence dependency depth"@en ;
+    rdfs:domain edu:ViewDerivedUsageEvidence ;
+    rdfs:range xsd:integer .
+
+edu:assessesAsset
+    a rdf:Property ;
+    rdfs:label "assesses Asset"@en ;
+    rdfs:domain edu:UsageAssessment ;
+    rdfs:range edu:Asset .
+
+edu:duringPeriod
+    a rdf:Property ;
+    rdfs:label "during period"@en ;
+    rdfs:domain edu:UsageAssessment ;
+    rdfs:range edu:ObservationPeriod .
+
+edu:periodStartsAt
+    a rdf:Property ;
+    rdfs:label "period starts at"@en ;
+    rdfs:domain edu:ObservationPeriod ;
+    rdfs:range xsd:dateTime .
+
+edu:periodEndsAt
+    a rdf:Property ;
+    rdfs:label "period ends at"@en ;
+    rdfs:domain edu:ObservationPeriod ;
+    rdfs:range xsd:dateTime .
+
+edu:hasUsageEvidence
+    a rdf:Property ;
+    rdfs:label "has Usage Evidence"@en ;
+    rdfs:domain edu:UsageAssessment ;
+    rdfs:range edu:UsageEvidence .
+
+edu:hasUsageEvidenceProfile
+    a rdf:Property ;
+    rdfs:label "has Usage Evidence Profile"@en ;
+    rdfs:domain edu:UsageAssessment ;
+    rdfs:range skos:Concept .
+
+edu:selectedFromAssessment
+    a rdf:Property ;
+    rdfs:label "selected from assessment"@en ;
+    rdfs:domain edu:ReviewCandidate ;
+    rdfs:range edu:UsageAssessment .
+
+edu:hasActorKind
+    a rdf:Property ;
+    rdfs:label "has actor kind"@en ;
+    rdfs:domain edu:Actor ;
+    rdfs:range skos:Concept .
+
+edu:applicationName
+    a rdf:Property ;
+    rdfs:label "application name"@en ;
+    rdfs:domain edu:SoftwareApplication ;
+    rdfs:range xsd:string .
+
+edu:populatesTopic
+    a rdf:Property ;
+    rdfs:label "populates topic"@en ;
+    rdfs:domain edu:JavaApplication ;
+    rdfs:range edu:OutputTopic .
+
+edu:topicName
+    a rdf:Property ;
+    rdfs:label "topic name"@en ;
+    rdfs:domain edu:OutputTopic ;
+    rdfs:range xsd:string .
+
+edu:mappingSourceSystem
+    a rdf:Property ;
+    rdfs:label "mapping source system"@en ;
+    rdfs:domain edu:ApplicationTopicPublication ;
+    rdfs:range edu:SourceSystem .
+
+edu:mappingTargetSchema
+    a rdf:Property ;
+    rdfs:label "mapping target schema"@en ;
+    rdfs:domain edu:ApplicationTopicPublication ;
+    rdfs:range edu:TargetSchema .
+
+edu:sourceSystemName
+    a rdf:Property ;
+    rdfs:label "source system name"@en ;
+    rdfs:domain edu:SourceSystem ;
+    rdfs:range xsd:string .
+
+edu:targetSchemaName
+    a rdf:Property ;
+    rdfs:label "target schema name"@en ;
+    rdfs:domain edu:TargetSchema ;
+    rdfs:range xsd:string .

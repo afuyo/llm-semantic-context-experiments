@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ontology Context Experiments</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;line-height:1.6;color:#1f2937;max-width:980px;margin:40px auto;padding:0 24px}
+h1,h2,h3{color:#111827} h1{border-bottom:2px solid #111827;padding-bottom:.3em}
+h2{margin-top:2em;border-bottom:1px solid #d1d5db;padding-bottom:.25em}
+blockquote{margin:1em 0;padding:.8em 1em;border-left:4px solid #111827;background:#f9fafb}
+pre{background:#f3f4f6;border:1px solid #d1d5db;border-radius:8px;padding:14px;overflow:auto;white-space:pre-wrap}
+table{border-collapse:collapse;width:100%;margin:1em 0 1.5em}
+th,td{border:1px solid #d1d5db;padding:9px 11px;text-align:left;vertical-align:top}
+th{background:#f3f4f6}
+.small{color:#6b7280;font-size:.92em}
+@media print{body{max-width:none;margin:0;padding:0} pre,blockquote{break-inside:avoid}}
+</style>
+</head>
+<body>
+
+<h1>Ontology Context Experiments</h1>
+
+<h2>Objective</h2>
+<p>The experiments test a simple hypothesis:</p>
+<blockquote><strong>Does giving an AI agent explicit vocabulary and ontology context improve its ability to reason over data compared with giving it the data alone?</strong></blockquote>
+
+<p>Each experiment compared three progressively richer context conditions:</p>
+<pre>RAW
+data only
+
+RAW + VOCABULARY
+data + semantic definitions
+
+RAW + VOCABULARY + ONTOLOGY
+data + semantic definitions + explicit ontology</pre>
+
+<p>The evaluation gradually moved beyond simple correctness toward correctness, evidence discipline, completeness / evidence recall, semantic clarity, reasoning effort, execution time and token usage.</p>
+
+<h2>Important experimental caveat</h2>
+<p>The three experiments are <strong>not directly comparable as performance benchmarks across rounds</strong>.</p>
+
+<ol>
+<li><strong>The input data changed.</strong>
+  <ul>
+    <li>Experiment 1 used prepared analytical marts.</li>
+    <li>Experiments 2 and 3 used lower-level exports much closer to the raw evidence.</li>
+  </ul>
+</li>
+<li><strong>Experiment 3 used a harder prompt and slightly different questions.</strong>
+  <ul>
+    <li>The agent had to identify the supporting files and fields.</li>
+    <li>It had to distinguish observed evidence from structural evidence.</li>
+    <li>It had to classify direct versus indirect evidence.</li>
+    <li>It had to reconstruct evidence chains.</li>
+    <li>It was explicitly forbidden from assuming unsupported meanings.</li>
+    <li>It had to state <code>insufficient information</code> when appropriate.</li>
+  </ul>
+</li>
+</ol>
+
+<p>The Codex version also differed between Experiment 1 and the later experiments.</p>
+
+<blockquote><strong>Performance comparisons should primarily be made between RAW, Vocabulary and Ontology within each experiment, not between experiments.</strong></blockquote>
+
+<h2>Experiment 1 — Prepared analytical data</h2>
+
+<h3>Setup</h3>
+<p>The first experiment used already-prepared analytical datasets such as:</p>
+<pre>mart__asset_usage_assessment.csv
+mart__table_usage_attribution.csv
+mart__view_asset_dependency_bridge.csv</pre>
+
+<p>These files already contained semantic concepts such as:</p>
+<pre>direct_access_event_count
+view_dependency_access_event_count
+evidence_type
+root_view_name
+target_asset_name
+dependency_depth
+candidate_for_review</pre>
+
+<p>Much of the interpretation had therefore already been performed upstream.</p>
+<pre>raw evidence
+     ↓
+ETL / semantic interpretation
+     ↓
+analytical marts
+     ↓
+agent</pre>
+
+<p>The RAW agent was not really reasoning over raw evidence. It was consuming data that already encoded the answers.</p>
+
+<h3>Results</h3>
+<p>All three variants answered the important questions correctly. They identified, among other things:</p>
+<ul>
+<li>14 assets with both direct and view-derived evidence;</li>
+<li>545 assets with no observed usage in the assessment period;</li>
+<li>structural dependency as different from observed usage;</li>
+<li><code>candidate_for_review</code> as a review state rather than proof of obsolescence or deletion safety.</li>
+</ul>
+
+<h3>Performance</h3>
+<table>
+<tr><th>Context</th><th>Time</th><th>Total tokens</th><th>Output tokens</th></tr>
+<tr><td>RAW</td><td><strong>1m 27s</strong></td><td><strong>37.1K</strong></td><td><strong>5.54K</strong></td></tr>
+<tr><td>Vocabulary</td><td>2m 57s</td><td>59.6K</td><td>6.72K</td></tr>
+<tr><td>Ontology</td><td>2m 13s</td><td>49.6K</td><td>5.88K</td></tr>
+</table>
+
+<p>RAW was both fastest and cheapest.</p>
+
+<h3>Conclusion</h3>
+<p>Experiment 1 showed little measurable benefit from adding vocabulary or ontology.</p>
+<p>The analytical marts had already encoded much of the semantic model. A strong agent could simply read those fields.</p>
+
+<blockquote><strong>If semantic interpretation has already been materialized into the data, adding an ontology may provide relatively little additional value for answering straightforward questions.</strong></blockquote>
+
+<p>The experiment was therefore too easy to provide strong evidence for ontology-assisted reasoning.</p>
+
+<h2>Experiment 2 — Move closer to raw evidence</h2>
+
+<h3>Setup</h3>
+<p>The second experiment removed the prepared analytical marts and instead exposed lower-level exports including:</p>
+<pre>access events
+query_sql
+view definitions
+asset inventory
+export metadata</pre>
+
+<p>Concepts such as <code>root_view_name</code>, <code>target_asset_name</code>, <code>dependency_depth</code> and <code>candidate_for_review</code> were no longer explicitly materialized.</p>
+
+<p>The agent now had to reconstruct relationships itself:</p>
+<pre>observed query
+      ↓
+queried view
+      ↓
+view definition
+      ↓
+underlying base asset</pre>
+
+<p>This was a much harder reasoning problem.</p>
+
+<h3>Results</h3>
+<p>All three agents eventually reconstructed the essential evidence model:</p>
+<pre>query observed
+      =
+runtime evidence
+
+view references table
+      =
+structural evidence
+
+observed view
+      +
+view definition references asset
+      =
+view-derived usage evidence</pre>
+
+<p>They also correctly distinguished:</p>
+<pre>dependency ≠ usage
+not observed ≠ unused
+not observed ≠ obsolete
+not observed ≠ safe to delete</pre>
+
+<p>The RAW agent was capable of reconstructing surprisingly much of the semantic structure directly from the files.</p>
+
+<h3>Performance</h3>
+<table>
+<tr><th>Context</th><th>Time</th><th>Total tokens</th><th>Output tokens</th></tr>
+<tr><td>RAW</td><td>14m 37s</td><td><strong>97.5K</strong></td><td>19.5K</td></tr>
+<tr><td>Vocabulary</td><td>10m 19s</td><td>110K</td><td><strong>18.9K</strong></td></tr>
+<tr><td>Ontology</td><td><strong>10m 15s</strong></td><td>126K</td><td>20.9K</td></tr>
+</table>
+
+<p>Ontology and Vocabulary were faster than RAW, but consumed more total tokens.</p>
+
+<h3>Conclusion</h3>
+<p>Experiment 2 was much more informative, but still inconclusive. The semantic context appeared to reduce some reasoning time, but there was no token-efficiency advantage.</p>
+
+<blockquote><strong>A capable model can reconstruct a surprising amount of semantic structure from sufficiently rich raw evidence.</strong></blockquote>
+
+<p>This changes the hypothesis. The value of ontology may not primarily be “the AI can now answer something it could never answer before.” The value may instead be:</p>
+
+<blockquote><strong>The AI does not have to reconstruct the same meaning repeatedly for every question.</strong></blockquote>
+
+<p>Potential benefits therefore include more consistent interpretation, less semantic reconstruction, more disciplined evidence use, more predictable reasoning and reusable context across questions.</p>
+
+<h2>Experiment 3 — Evidence-first reasoning</h2>
+
+<h3>Setup</h3>
+<p>Experiment 3 used essentially the same lower-level evidence as Experiment 2, but the prompt and questions were sharpened.</p>
+
+<p><strong>Experiment 3 was not simply a repeat of Experiment 2.</strong></p>
+
+<p>The agent was now explicitly instructed to answer using only the available files. For every answer it had to:</p>
+<ul>
+<li>state the conclusion;</li>
+<li>identify the supporting file;</li>
+<li>identify the supporting field;</li>
+<li>distinguish observed evidence from structural information;</li>
+<li>distinguish direct from indirect evidence;</li>
+<li>avoid unsupported assumptions;</li>
+<li>explicitly say when information was insufficient.</li>
+</ul>
+
+<p>Several questions were also made more demanding. Instead of simply asking whether an asset was used, the agent had to reconstruct the full evidence chain:</p>
+<pre>observed access
+      ↓
+queried object
+      ↓
+view definition
+      ↓
+underlying asset</pre>
+
+<p>Question 8 was also sharpened to ask for assets with <strong>no supported evidence of usage</strong>, while explicitly requiring the distinction between:</p>
+<pre>"not observed in this dataset"
+
+and
+
+"unused"
+"obsolete"
+"safe to delete"</pre>
+
+<p>This required considerably more reasoning than the earlier formulation.</p>
+
+<blockquote><strong>The longer RAW runtime in Experiment 3 compared with Experiment 2 should not be interpreted as performance degradation. The meaningful comparison is RAW vs Vocabulary vs Ontology inside Experiment 3, where all three received exactly the same harder task.</strong></blockquote>
+
+<h2>Experiment 3 — Results</h2>
+
+<p>All three agents converged on essentially the same core evidence model.</p>
+
+<h3>Direct usage</h3>
+<pre>AccessEvent.query_sql
+        ↓
+physical asset</pre>
+
+<h3>View-derived usage</h3>
+<pre>AccessEvent.query_sql
+        ↓
+queried View
+        ↓
+ViewDefinition
+        ↓
+BaseAsset</pre>
+
+<h3>Structural evidence only</h3>
+<pre>ViewDefinition
+        ↓
+BaseAsset</pre>
+
+<p>All three also understood that:</p>
+<pre>StructuralDependency
+       does NOT imply
+ObservedUsage
+
+NotObserved
+       does NOT imply
+Unused
+
+NotObserved
+       does NOT imply
+Obsolete
+
+NotObserved
+       does NOT imply
+SafeToDelete</pre>
+
+<p>This is important because the experiment was no longer testing only whether the final answer was right. It was testing whether the agent could distinguish what is known, what is inferred, what is merely structurally related, and what cannot safely be concluded.</p>
+
+<h2>Experiment 3 — Performance</h2>
+<table>
+<tr><th>Context</th><th>Time</th><th>Total tokens</th><th>Output tokens</th></tr>
+<tr><td>RAW</td><td>19m 40s</td><td>149K</td><td>26.6K</td></tr>
+<tr><td>Vocabulary</td><td>12m 34s</td><td>152K</td><td>25.4K</td></tr>
+<tr><td>Ontology</td><td><strong>9m 32s</strong></td><td><strong>136K</strong></td><td><strong>12.1K</strong></td></tr>
+</table>
+
+<p>This is the first experiment where a meaningful efficiency signal appears.</p>
+
+<p>Compared with RAW, Ontology was approximately:</p>
+<ul>
+<li><strong>52% faster</strong>;</li>
+<li>about <strong>9% lower in total token consumption</strong>;</li>
+<li>about <strong>55% lower in output tokens</strong>.</li>
+</ul>
+
+<p>It is therefore not correct to say that Ontology used half the total tokens. It did, however, produce the answer using roughly half the <strong>output tokens</strong> and approximately half the elapsed time.</p>
+
+<p>That is interesting because Experiment 3 was also the most reasoning-intensive test.</p>
+
+<h2>The interesting failure — completeness</h2>
+
+<p>The most interesting difference appeared in Question 8.</p>
+
+<h3>RAW</h3>
+<blockquote>For the narrower captured-query slice, <strong>1,311 of 2,627 unique inventoried base tables</strong> had no direct physical-access evidence and were not reachable from any of the 43 captured view accesses.</blockquote>
+
+<p>It then correctly qualified this:</p>
+<blockquote>This means only <strong>“not observed in this captured query dataset”</strong>, not unused, obsolete or safe to delete.</blockquote>
+
+<h3>Vocabulary</h3>
+<p>The Vocabulary agent went even further. It found a provisional set of:</p>
+<pre>1,429 inventory assets
+├── 1,311 base tables
+└──   118 views</pre>
+
+<p>It also discovered that 13 observed root relations could not be mapped to an available view definition, and therefore correctly described the result as provisional rather than authoritative.</p>
+
+<h3>Ontology</h3>
+<p>The Ontology agent instead answered:</p>
+<blockquote><strong>Conclusion: a complete list cannot be produced safely.</strong></blockquote>
+
+<p>It correctly recognized the limitations of the data, but it stopped there. It did not produce the narrower but still supportable result that RAW and Vocabulary discovered.</p>
+
+<h2>What does completeness mean here?</h2>
+<blockquote><strong>Completeness is how much of the relevant, supportable evidence needed to answer the question the agent actually surfaces.</strong></blockquote>
+
+<p>It is not answer length, and it is not willingness to speculate.</p>
+
+<p>A correct answer can still be incomplete:</p>
+<pre>Evidence supports:
+
+1,311 assets are not observed
+within this specific captured dataset</pre>
+
+<p>An answer saying only:</p>
+<pre>"A complete answer is impossible"</pre>
+
+<p>is epistemically cautious, but it leaves out a valid conclusion that the evidence supports.</p>
+
+<p>Conversely, <code>insufficient information</code> is a <strong>fully complete answer</strong> when the evidence genuinely does not exist.</p>
+
+<pre>completeness
+    =
+supportable answer components surfaced
+--------------------------------------
+supportable answer components available</pre>
+
+<h2>Precision versus recall</h2>
+<p>Experiment 3 suggests that two properties may be separating.</p>
+
+<p><strong>Evidence precision:</strong> How often are the conclusions the agent makes genuinely supported?</p>
+<p><strong>Evidence recall:</strong> How much of the supportable evidence does the agent discover and use?</p>
+
+<table>
+<tr><th></th><th>RAW</th><th>Vocabulary</th><th>Ontology</th></tr>
+<tr><td>Evidence precision</td><td>High</td><td>High</td><td><strong>Very high</strong></td></tr>
+<tr><td>Evidence recall</td><td><strong>Very high</strong></td><td>High</td><td>Lower</td></tr>
+<tr><td>Exploration</td><td><strong>Very high</strong></td><td>High</td><td>Lower</td></tr>
+<tr><td>Semantic discipline</td><td>High</td><td>High</td><td><strong>Very high</strong></td></tr>
+</table>
+
+<p>The Ontology agent appears to become more disciplined about unsupported conclusions. That is desirable, but it may also become <strong>too conservative about exploring evidence outside the semantic paths it has been given</strong>.</p>
+
+<h2>Why might ontology reduce completeness?</h2>
+
+<p>One possible explanation is that the ontology becomes a strong semantic prior.</p>
+
+<p>With RAW:</p>
+<pre>data
+ ↓
+explore
+ ↓
+discover relationships
+ ↓
+construct semantics
+ ↓
+reason</pre>
+
+<p>With ontology:</p>
+<pre>ontology
+   ↓
+known semantic paths
+   ↓
+reason</pre>
+
+<p>This is normally exactly what we want. But an LLM may implicitly begin treating:</p>
+<pre>not represented in ontology</pre>
+<p>as something closer to:</p>
+<pre>not safely knowable</pre>
+
+<p>That can create a form of <strong>semantic authority bias</strong>.</p>
+
+<blockquote><strong>An incomplete ontology can potentially create schema-induced blindness.</strong></blockquote>
+
+<p>The ontology helps the agent avoid bad inference, but can also discourage useful exploration. This appears to be what happened in Question 8.</p>
+
+<h2>An important distinction — two kinds of evidence gap</h2>
+
+<h3>1. Data gap</h3>
+<pre>question
+   ↓
+required evidence genuinely does not exist</pre>
+
+<p>Correct response:</p>
+<pre>Insufficient information.</pre>
+
+<p>The ontology must <strong>not fill this gap through invention or unsupported inference</strong>.</p>
+
+<h3>2. Semantic gap</h3>
+<pre>question
+   ↓
+required evidence exists
+   ↓
+semantic model does not express
+the reasoning path cleanly</pre>
+
+<p>The evidence exists. The agent simply lacks an explicit semantic route to use it confidently. Question 8 appears to expose this kind of gap.</p>
+
+<blockquote><strong>DATA GAP — the evidence is missing.</strong></blockquote>
+<p>versus:</p>
+<blockquote><strong>SEMANTIC GAP — the evidence exists, but our metadata/ontology cannot express it cleanly enough.</strong></blockquote>
+
+<h2>Results across all three experiments</h2>
+
+<pre>EXPERIMENT 1
+
+Prepared semantic marts
+        ↓
+answers already encoded in data
+        ↓
+ontology adds little
+
+
+EXPERIMENT 2
+
+Lower-level evidence
+        ↓
+agent must reconstruct semantics
+        ↓
+ontology/vocabulary begin to help
+        ↓
+but efficiency result is mixed
+
+
+EXPERIMENT 3
+
+Lower-level evidence
+        +
+harder evidence-first questions
+        ↓
+much more reasoning required
+        ↓
+ontology is significantly faster
+and much more concise
+        ↓
+but becomes more conservative
+and loses some completeness</pre>
+
+<p>The important point is that the strongest ontology signal appears in the <strong>hardest reasoning experiment</strong>, not in the easiest one.</p>
+
+<h2>Qualitative assessment of Experiment 3</h2>
+<p class="small">The following scores are an interpretation of the observed responses, not a scientific benchmark.</p>
+
+<table>
+<tr><th>Dimension</th><th>RAW</th><th>Vocabulary</th><th>Ontology</th></tr>
+<tr><td>Correctness</td><td>9/10</td><td>9/10</td><td>9/10</td></tr>
+<tr><td>Evidence discipline</td><td>9/10</td><td>9.5/10</td><td><strong>10/10</strong></td></tr>
+<tr><td>Completeness / evidence recall</td><td><strong>10/10</strong></td><td>9.5/10</td><td>8/10</td></tr>
+<tr><td>Semantic clarity</td><td>8/10</td><td>9/10</td><td><strong>10/10</strong></td></tr>
+<tr><td>Conciseness</td><td>6/10</td><td>7/10</td><td><strong>10/10</strong></td></tr>
+<tr><td>Reasoning efficiency</td><td>6/10</td><td>8/10</td><td><strong>10/10</strong></td></tr>
+</table>
+
+<p>The result should therefore not be summarized as simply:</p>
+<pre>Ontology wins.</pre>
+
+<p>It is more interesting than that:</p>
+<pre>                  ONTOLOGY
+                     │
+          ┌──────────┴──────────┐
+          ▼                     ▼
+better discipline       less exploration
+better precision        lower evidence recall
+less reconstruction     possible semantic blindness</pre>
+
+<h2>What the experiments currently suggest</h2>
+
+<p>The experiments do <strong>not</strong> show that ontology magically makes an AI agent smarter. A sufficiently capable model can reconstruct much of the semantic structure from raw data.</p>
+
+<p>But that reconstruction has a cost.</p>
+
+<p>Without reusable context:</p>
+<pre>question 1
+   ↓
+rediscover semantics
+
+question 2
+   ↓
+rediscover semantics
+
+question 3
+   ↓
+rediscover semantics</pre>
+
+<p>With semantic context:</p>
+<pre>declare semantics once
+        ↓
+reuse
+        ↓
+question 1
+question 2
+question 3</pre>
+
+<blockquote><strong>Ontology shifts work from repeated runtime reconstruction to reusable declared context.</strong></blockquote>
+
+<p>Experiment 3 provides the strongest evidence for that hypothesis so far.</p>
+
+<p>The Ontology agent reached essentially the same core conclusions as RAW while:</p>
+<ul>
+<li>finishing in approximately half the time;</li>
+<li>producing roughly half as many output tokens;</li>
+<li>showing stronger evidence discipline;</li>
+<li>making fewer unsupported interpretive leaps.</li>
+</ul>
+
+<p>But it also exposed a failure mode:</p>
+<blockquote><strong>The semantic model can become too authoritative and discourage the agent from discovering valid evidence that lies outside explicitly represented semantic paths.</strong></blockquote>
+
+<h2>Implication for ontology development</h2>
+
+<p>The answer is not simply to make the ontology larger. It should be sharpened where experiments reveal actual reasoning friction.</p>
+
+<pre>Evidence
+├── DirectUsageEvidence
+├── ViewDerivedUsageEvidence
+└── StructuralDependency
+
+ObservationScope
+├── namespace
+├── observed_from
+├── observed_to
+└── coverage
+
+Attribution
+AccessEvent
+   ↓
+QueriedAsset
+   ↓
+ViewDefinition
+   ↓
+AttributedAsset
+
+IdentityResolution
+PartyRoleInClaim
+      =
+partyroleinclaim</pre>
+
+<p>The ontology should also explicitly represent important non-implications:</p>
+
+<pre>StructuralDependency
+    does NOT imply
+ObservedUsage
+
+NotObserved
+    does NOT imply
+Unused
+
+NotObserved
+    does NOT imply
+Obsolete
+
+NotObserved
+    does NOT imply
+SafeToDelete</pre>
+
+<blockquote><strong>Absence from the ontology must not be treated as evidence of absence from reality.</strong></blockquote>
+
+<p>The ontology should guide reasoning, not bound what the agent is allowed to discover.</p>
+
+<h2>SELF-STUDY opportunity</h2>
+
+<p>This suggests a practical SELF-STUDY loop for metadata and ontology development.</p>
+
+<pre>competency questions
+        ↓
+RAW / VOCAB / ONTOLOGY runs
+        ↓
+score responses
+        ↓
+compare reasoning
+        ↓
+identify gaps
+        │
+        ├── DATA GAP
+        │      evidence missing
+        │
+        └── SEMANTIC GAP
+               evidence exists
+               but model cannot express it
+                    ↓
+          propose metadata /
+          ontology improvement
+                    ↓
+             rerun benchmark
+                    ↓
+           keep change only if
+           results improve</pre>
+
+<table>
+<tr><th>Measure</th><th>Meaning</th></tr>
+<tr><td>Correctness</td><td>Was the conclusion right?</td></tr>
+<tr><td>Evidence precision</td><td>Were conclusions genuinely supported?</td></tr>
+<tr><td>Evidence recall</td><td>How much supportable evidence was discovered?</td></tr>
+<tr><td>Completeness</td><td>Were all supportable answer components surfaced?</td></tr>
+<tr><td>Unsupported inference</td><td>Did the agent invent missing links?</td></tr>
+<tr><td>Semantic-gap detection</td><td>Did it recognise evidence the ontology could not express?</td></tr>
+<tr><td>Time</td><td>How long did the investigation take?</td></tr>
+<tr><td>Tokens</td><td>How much context/reasoning did it consume?</td></tr>
+</table>
+
+<p>This turns ontology development into something testable.</p>
+
+<pre>"We think this ontology is useful."</pre>
+
+<p>can become:</p>
+
+<pre>Did this ontology change
+make the agent:
+
+more correct?
+more complete?
+more disciplined?
+faster?
+cheaper?</pre>
+
+<h2>Overall conclusion</h2>
+
+<p>Across the three experiments, semantic context becomes more valuable as the task moves away from prepared analytical data and toward reasoning over lower-level evidence.</p>
+
+<p>Experiment 1 showed that ontology adds little when semantic conclusions are already materialized in marts.</p>
+
+<p>Experiment 2 showed that a strong model can reconstruct much of the missing semantic structure from raw evidence, although doing so requires substantial reasoning.</p>
+
+<p>Experiment 3 deliberately made the task harder by strengthening both the prompt and the questions. The agent had to explain not only <strong>what</strong> it concluded, but <strong>why the evidence justified that conclusion</strong>.</p>
+
+<p>Under those conditions, the ontology-equipped agent showed the clearest advantage so far:</p>
+
+<blockquote><strong>approximately half the elapsed time, roughly half the output tokens, and stronger evidence discipline than the RAW agent.</strong></blockquote>
+
+<p>At the same time, Question 8 revealed an important limitation:</p>
+
+<blockquote><strong>Ontology-guided reasoning can become overly conservative and fail to surface valid conclusions that are supported by the underlying evidence.</strong></blockquote>
+
+<p>That is not an argument against ontology-guided reasoning.</p>
+
+<p>It is an argument for treating ontology and metadata like every other engineered component:</p>
+
+<blockquote><strong>test it, score it, validate it, find the gaps, improve it, and rerun the same competency questions.</strong></blockquote>
+
+<p>The current working conclusion is:</p>
+
+<blockquote><strong>Ontology does not replace inference. It provides reusable context that can make inference faster, more consistent and more disciplined — provided we validate that it does not accidentally suppress useful exploration.</strong></blockquote>
+
+<p>Or, in one line:</p>
+
+<blockquote><strong>The ontology should guide inference, not constrain reality.</strong></blockquote>
+
+</body>
+</html>
